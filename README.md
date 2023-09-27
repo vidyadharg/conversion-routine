@@ -5,7 +5,6 @@ SAP one method for conversion routine.
 DATA(convexit) = zcl_convexit=>create( ).
 
 DATA:
-
   lv_kunnr TYPE kunnr,
   lv_matnr TYPE matnr.
 
