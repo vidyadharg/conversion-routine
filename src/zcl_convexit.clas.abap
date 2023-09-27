@@ -11,18 +11,12 @@ CLASS zcl_convexit DEFINITION
     ALIASES out
       FOR zif_convexit~out.
 
-    "! <p class="shorttext synchronized" lang="en"></p>
-    "!
-    "! @parameter convexit | <p class="shorttext synchronized" lang="en">Conversion routine</p>
-    "! @parameter r_convexit | <p class="shorttext synchronized" lang="en"></p>
     CLASS-METHODS create
       IMPORTING
         convexit          TYPE convexit OPTIONAL
       RETURNING
         VALUE(r_convexit) TYPE REF TO zcl_convexit.
 
-    "! <p>constructor</p>
-    "! @parameter convexit | Conversion routine
     METHODS constructor
       IMPORTING
         convexit TYPE convexit .
