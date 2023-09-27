@@ -1,1 +1,153 @@
+CLASS zcl_convexit DEFINITION
+  PUBLIC
+  CREATE PRIVATE .
 
+  PUBLIC SECTION.
+    INTERFACES zif_convexit.
+
+    ALIASES in
+      FOR zif_convexit~in.
+
+    ALIASES out
+      FOR zif_convexit~out.
+
+    "! <p class="shorttext synchronized" lang="en"></p>
+    "!
+    "! @parameter convexit | <p class="shorttext synchronized" lang="en">Conversion routine</p>
+    "! @parameter r_convexit | <p class="shorttext synchronized" lang="en"></p>
+    CLASS-METHODS create
+      IMPORTING
+        convexit          TYPE convexit OPTIONAL
+      RETURNING
+        VALUE(r_convexit) TYPE REF TO zcl_convexit.
+
+    "! <p>constructor</p>
+    "! @parameter convexit | Conversion routine
+    METHODS constructor
+      IMPORTING
+        convexit TYPE convexit .
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    METHODS get_fnam
+      IMPORTING
+        input         TYPE any
+        in_out        TYPE char1 DEFAULT 'I'
+        convexit      TYPE convexit OPTIONAL
+      RETURNING
+        VALUE(fm_nam) TYPE rs38l_fnam.
+
+    CONSTANTS:
+      BEGIN OF gc,
+        in  TYPE c LENGTH 1 VALUE 'I',
+        out TYPE c LENGTH 1 VALUE 'O',
+      END OF gc.
+    DATA default_convexit TYPE convexit.
+
+ENDCLASS.
+
+CLASS zcl_convexit IMPLEMENTATION.
+
+  METHOD constructor.
+    default_convexit = convexit.
+  ENDMETHOD.
+
+  METHOD create.
+    r_convexit = NEW zcl_convexit( convexit ).
+  ENDMETHOD.
+
+
+  METHOD get_fnam.
+
+    DATA lv_convexit TYPE convexit.
+
+    IF convexit IS SUPPLIED.
+      lv_convexit = convexit.
+    ELSEIF default_convexit IS NOT INITIAL .
+      lv_convexit = default_convexit.
+    ELSE.
+
+      DATA(ddic_object) = cl_abap_typedescr=>describe_by_data( input ).
+
+      ddic_object->get_ddic_object(
+        RECEIVING
+         p_object     = DATA(ddic_tab)
+        EXCEPTIONS
+          not_found    = 1
+          no_ddic_type = 2
+          OTHERS       = 3 ).
+      IF sy-subrc = 0 .
+        DATA(ls_ddic_tab) = VALUE #( ddic_tab[ 1 ] DEFAULT space ).
+        lv_convexit = ls_ddic_tab-convexit.
+      ENDIF.
+    ENDIF.
+
+    IF lv_convexit IS INITIAL.
+      lv_convexit = 'ALPHA'.
+    ENDIF.
+
+    IF in_out = 'I'.
+      fm_nam = 'CONVERSION_EXIT_' && lv_convexit && '_INPUT'.
+    ELSE.
+      fm_nam = 'CONVERSION_EXIT_' && lv_convexit && '_OUTPUT'.
+    ENDIF.
+
+
+    CALL FUNCTION 'FUNCTION_EXISTS'
+      EXPORTING
+        funcname           = fm_nam           " Name of Function Module
+      EXCEPTIONS
+        function_not_exist = 1                " X
+        OTHERS             = 2.
+    IF sy-subrc <> 0.
+      CLEAR fm_nam.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD in.
+
+    IF quom IS SUPPLIED.
+     "Quantity. in-progress
+
+    ELSEIF curkey IS SUPPLIED.
+     "Currency. in-progress
+    ELSE.
+
+      DATA(fm_nam) = get_fnam( input = input in_out = gc-in ).
+
+      IF fm_nam IS NOT INITIAL.
+        CALL FUNCTION fm_nam  " Function Module Name
+          EXPORTING
+            input  = input       " Input
+          IMPORTING
+            output = output.     " Output
+      ELSE.
+        output = input.
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD out.
+    IF quom IS SUPPLIED.
+      "Quantity.in-progress
+
+    ELSEIF curkey IS SUPPLIED.
+      "Currency. in-progress
+    ELSE.
+      DATA(fm_nam) = get_fnam( input = input in_out = gc-out ).
+
+      IF fm_nam IS NOT INITIAL.
+        CALL FUNCTION fm_nam  " Function Module Name
+          EXPORTING
+            input  = input       " Input
+          IMPORTING
+            output = output.     " Output
+      ELSE.
+        output = input.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.
