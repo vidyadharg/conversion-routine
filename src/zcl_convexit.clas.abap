@@ -15,21 +15,33 @@ CLASS zcl_convexit DEFINITION
       IMPORTING
         convexit          TYPE convexit OPTIONAL
       RETURNING
-        VALUE(r_convexit) TYPE REF TO zcl_convexit.
+        VALUE(r_convexit) TYPE REF TO zcl_convexit
+        RAISING   zcx_convexit.
 
     METHODS constructor
       IMPORTING
-        convexit TYPE convexit .
+        convexit TYPE convexit
+        RAISING   zcx_convexit.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    METHODS get_fnam
-      IMPORTING
-        input         TYPE any
-        in_out        TYPE char1 DEFAULT 'I'
-        convexit      TYPE convexit OPTIONAL
-      RETURNING
-        VALUE(fm_nam) TYPE rs38l_fnam.
+    METHODS:
+      get_fnam
+        IMPORTING
+          input         TYPE any
+          in_out        TYPE char1 DEFAULT 'I'
+          convexit      TYPE convexit OPTIONAL
+        RETURNING
+          VALUE(fm_nam) TYPE rs38l_fnam
+          RAISING   zcx_convexit,
+
+      call_fm
+        IMPORTING
+          input         TYPE any
+          in_out        TYPE char1 DEFAULT 'I'
+        RETURNING
+          VALUE(output) TYPE string
+          RAISING   zcx_convexit.
 
     CONSTANTS:
       BEGIN OF gc,
@@ -37,10 +49,32 @@ CLASS zcl_convexit DEFINITION
         out TYPE c LENGTH 1 VALUE 'O',
       END OF gc.
     DATA default_convexit TYPE convexit.
-
 ENDCLASS.
 
+
+
 CLASS zcl_convexit IMPLEMENTATION.
+
+  METHOD call_fm.
+
+    DATA(fm_nam) = get_fnam( input = input in_out = in_out ).
+
+    IF fm_nam IS NOT INITIAL.
+      CALL FUNCTION fm_nam  " Function Module Name
+        EXPORTING
+          input     = input       " Input
+        IMPORTING
+          output    = output      " Output
+        EXCEPTIONS
+          not_found = 1
+          OTHERS    = 2.
+      IF sy-subrc <> 0.
+        zcx_convexit=>raise_t100( iv_longtext = |FM { fm_nam }/Value { input }| ).
+      ENDIF.
+    ELSE.
+      output = input.
+    ENDIF.
+  ENDMETHOD.
 
   METHOD constructor.
     default_convexit = convexit.
@@ -49,7 +83,6 @@ CLASS zcl_convexit IMPLEMENTATION.
   METHOD create.
     r_convexit = NEW zcl_convexit( convexit ).
   ENDMETHOD.
-
 
   METHOD get_fnam.
 
@@ -76,25 +109,25 @@ CLASS zcl_convexit IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    IF lv_convexit IS INITIAL.
-      lv_convexit = 'ALPHA'.
-    ENDIF.
+*    IF lv_convexit IS INITIAL.
+*      lv_convexit = 'ALPHA'.
+*    ENDIF.
+    IF lv_convexit IS NOT INITIAL.
+      IF in_out = 'I'.
+        fm_nam = 'CONVERSION_EXIT_' && lv_convexit && '_INPUT'.
+      ELSE.
+        fm_nam = 'CONVERSION_EXIT_' && lv_convexit && '_OUTPUT'.
+      ENDIF.
 
-    IF in_out = 'I'.
-      fm_nam = 'CONVERSION_EXIT_' && lv_convexit && '_INPUT'.
-    ELSE.
-      fm_nam = 'CONVERSION_EXIT_' && lv_convexit && '_OUTPUT'.
-    ENDIF.
-
-
-    CALL FUNCTION 'FUNCTION_EXISTS'
-      EXPORTING
-        funcname           = fm_nam           " Name of Function Module
-      EXCEPTIONS
-        function_not_exist = 1                " X
-        OTHERS             = 2.
-    IF sy-subrc <> 0.
-      CLEAR fm_nam.
+      CALL FUNCTION 'FUNCTION_EXISTS'
+        EXPORTING
+          funcname           = fm_nam           " Name of Function Module
+        EXCEPTIONS
+          function_not_exist = 1                " X
+          OTHERS             = 2.
+      IF sy-subrc <> 0.
+        CLEAR fm_nam.
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -102,46 +135,24 @@ CLASS zcl_convexit IMPLEMENTATION.
   METHOD in.
 
     IF quom IS SUPPLIED.
-     "Quantity. in-progress
-
+      "Quantity. in-progress
     ELSEIF curkey IS SUPPLIED.
-     "Currency. in-progress
+      "Currency. in-progress
     ELSE.
-
-      DATA(fm_nam) = get_fnam( input = input in_out = gc-in ).
-
-      IF fm_nam IS NOT INITIAL.
-        CALL FUNCTION fm_nam  " Function Module Name
-          EXPORTING
-            input  = input       " Input
-          IMPORTING
-            output = output.     " Output
-      ELSE.
-        output = input.
-      ENDIF.
+      output = call_fm( input = input
+                        in_out = gc-in ).
     ENDIF.
   ENDMETHOD.
 
   METHOD out.
     IF quom IS SUPPLIED.
       "Quantity.in-progress
-
     ELSEIF curkey IS SUPPLIED.
       "Currency. in-progress
     ELSE.
-      DATA(fm_nam) = get_fnam( input = input in_out = gc-out ).
-
-      IF fm_nam IS NOT INITIAL.
-        CALL FUNCTION fm_nam  " Function Module Name
-          EXPORTING
-            input  = input       " Input
-          IMPORTING
-            output = output.     " Output
-      ELSE.
-        output = input.
-      ENDIF.
+      output = call_fm( input = input
+                        in_out = gc-out ).
     ENDIF.
 
   ENDMETHOD.
-
 ENDCLASS.

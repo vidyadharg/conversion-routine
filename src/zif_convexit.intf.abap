@@ -8,7 +8,8 @@ INTERFACE zif_convexit
       curkey        TYPE WAERS OPTIONAL
       quom          TYPE unit OPTIONAL
     RETURNING
-      VALUE(output) TYPE string .
+      VALUE(output) TYPE string
+    RAISING   zcx_convexit.
 
   METHODS out
     IMPORTING
@@ -17,7 +18,8 @@ INTERFACE zif_convexit
       curkey        TYPE WAERS OPTIONAL
       quom          TYPE unit OPTIONAL
     RETURNING
-      VALUE(output) TYPE string .
+      VALUE(output) TYPE string
+    RAISING   zcx_convexit.
 
 
 ENDINTERFACE.
