@@ -39,5 +39,5 @@ TYPES:
   ENDLOOP.
 
   data(lv_lifnr) = '0000000123'.
-  lv_lifnr = convexit_wbs->out( input = lv_lifnr convexit  = 'ALPHA' )
+  lv_lifnr = convexit_wbs->out( input = lv_lifnr convexit  = 'ALPHA' ).
 ```
